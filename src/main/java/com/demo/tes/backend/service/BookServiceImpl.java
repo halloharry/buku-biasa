@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -38,24 +39,28 @@ public class BookServiceImpl implements IBookService {
                 Optional.ofNullable(page).orElse(1) - 1,
                 Optional.ofNullable(size).orElse(20));
 
-        Page<Book> Books = bookRepository.findAll(pageable);
-        if (page != null && page > Books.getPageable().getPageNumber()) {
+        Page<Book> books = bookRepository.findAll(pageable);
+        if (page != null && page > books.getPageable().getPageNumber()) {
             throw new ServiceException("invalid page");
         }
-        List<BookDto> bookDtos = new ArrayList<>();
-        Books.getContent().forEach(x -> {
-            BookDto bookDto = new BookDto();
-            bookDto.setId(x.getId());
-            bookDto.setTitle(x.getTitle());
-            bookDto.setAuthor(x.getAuthor());
-            bookDto.setYearPublished(x.getYearPublished());
-            boolean isBorrowed = bookPinjamRepository.findByBookIdAndIsReturnedFalse(x.getId()).isPresent();
-            bookDto.setBorrowed(isBorrowed);
+        List<Long> bookIds = books.getContent().stream()
+                .map(Book::getId)
+                .collect(Collectors.toList());
 
-            bookDtos.add(bookDto);
-        });
+        Set<Long> borrowedBookIds = bookPinjamRepository.findBorrowedBookIds(bookIds);
 
-        return new PageImpl<>(bookDtos, pageable, Books.getTotalElements());
+        List<BookDto> bookDtos = books.getContent().stream().map(book ->
+                new BookDto(
+                        book.getId(),
+                        book.getTitle(),
+                        book.getAuthor(),
+                        book.getYearPublished(),
+                        borrowedBookIds.contains(book.getId())
+                )
+        ).sorted(Comparator.comparing(BookDto::getYearPublished)) // sort asc by year
+        .collect(Collectors.toList());
+
+        return new PageImpl<>(bookDtos, pageable, books.getTotalElements());
     }
 
     @Override

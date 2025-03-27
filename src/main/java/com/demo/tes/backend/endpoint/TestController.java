@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping(value = "/api", produces = "application/json")
 @RequiredArgsConstructor
 public class TestController {
 
@@ -33,21 +33,20 @@ public class TestController {
         return ResponseEntity.ok(bookService.getBookById(id));
     }
 
-    @PostMapping("/add")
+    @PostMapping(value = "/add", consumes = "application/json")
     public ResponseEntity<Boolean> createBook(@RequestBody RequestBookDto requestBookDto) throws ServiceException {
         return ResponseEntity.ok(bookService.saveBook(requestBookDto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = "application/json")
     public ResponseEntity<Boolean> updateBook(@PathVariable Long id, @RequestBody RequestBookDto requestBookDto) throws ServiceException {
         return ResponseEntity.ok(bookService.updateBook(id, requestBookDto));
     }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Boolean> deleteBook(@PathVariable Long id) throws ServiceException {
         return ResponseEntity.ok(bookService.deleteBook(id));
     }
-    @PostMapping("/book-pinjam")
+    @PostMapping(value = "/book-pinjam", consumes = "application/json")
     public ResponseEntity<ResponseBookPinjamDto> bookPinjam(@RequestBody RequestBookPinjamDto requestBookPinjamDto) throws ServiceException {
         return ResponseEntity.ok(bookService.bookPinjam(requestBookPinjamDto));
     }
@@ -61,5 +60,11 @@ public class TestController {
     public ResponseEntity<String> sendNotif() throws ServiceException {
         bookService.sendNotif();
         return ResponseEntity.ok("notifikasi terkirim");
+    }
+
+    @GetMapping("/reminder-notif")
+    public ResponseEntity<String> reminderNotif() throws ServiceException {
+        bookService.sendNotifOverdue();
+        return ResponseEntity.ok("reminder terkirim");
     }
 }
